@@ -74,7 +74,6 @@ if (document.getElementById("closeDrawer")) {
     drawerOverlay.addEventListener("click", closeDrawer);
 }
 
-// Search & Filters Syncing
 const drawerSearch = document.getElementById("drawerSearch");
 const mainSearch = document.getElementById("mainSearch");
 
@@ -98,129 +97,143 @@ if (document.getElementById("drawerSort")) {
 }
 
 /* =========================================================
-   5. PAKISTANI, ARY & DISNEY CHANNELS (FIXED LIST)
+   5. M3U PARSER FUNCTION
+   ========================================================= */
+function parseM3U(m3uContent) {
+    const lines = m3uContent.split(/\r?\n/);
+    const channels = [];
+    let currentChannel = null;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        if (line.startsWith('#EXTINF:')) {
+            // Extract name (text after last comma)
+            const commaIndex = line.lastIndexOf(',');
+            const name = commaIndex > -1 ? line.substring(commaIndex + 1).trim() : 'Unknown Channel';
+
+            // Extract logo (tvg-logo="...")
+            const logoMatch = line.match(/tvg-logo="([^"]*)"/);
+            const logo = logoMatch ? logoMatch[1] : '';
+
+            // Extract group (group-title="...")
+            const groupMatch = line.match(/group-title="([^"]*)"/);
+            let categories = ['general'];
+            if (groupMatch) {
+                categories = [groupMatch[1].toLowerCase()]; // Use group as category
+            }
+
+            // Extract country if present (tvg-country="...")
+            const countryMatch = line.match(/tvg-country="([^"]*)"/);
+            const country = countryMatch ? countryMatch[1].toUpperCase() : '';
+
+            currentChannel = {
+                name: name,
+                logo: logo,
+                categories: categories,
+                country: country,
+                streams: [],
+                status: 'unknown'
+            };
+        } else if (line.startsWith('#EXTGRP:')) {
+            // Alternative group format
+            if (currentChannel) {
+                const group = line.substring(8).trim().toLowerCase();
+                if (group) currentChannel.categories = [group];
+            }
+        } else if (line.startsWith('http://') || line.startsWith('https://')) {
+            if (currentChannel) {
+                currentChannel.streams.push({ url: line });
+                // Only add if we have a valid stream
+                if (currentChannel.streams.length > 0) {
+                    // Generate a unique ID (slugify name + random)
+                    currentChannel.id = currentChannel.name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Math.random().toString(36).substring(2, 7);
+                    channels.push(currentChannel);
+                }
+                currentChannel = null;
+            }
+        }
+    }
+
+    // Limit to first 500 channels for performance
+    return channels.slice(0, 500);
+}
+
+/* =========================================================
+   6. LOAD CHANNELS (M3U + Fallback)
    ========================================================= */
 async function loadChannels() {
+    const M3U_URL = "https://iptv-org.github.io/iptv/index.m3u";
+    
+    DOM.grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--primary);">Loading channels from IPTV-org (this may take a few seconds)...</div>`;
+
     try {
-        const customChannels = [
-            // --- PAKISTANI CHANNELS (ARY Network) ---
-            { 
-                id: "ary_digital", 
-                name: "ARY Digital", 
-                country: "PK", 
-                categories: ["entertainment"], 
-                logo: "https://upload.wikimedia.org/wikipedia/en/5/5e/ARY_Digital_Logo.png", 
-                streams: [{ url: "https://jk3lz9n2.rocketcdn.me/arydigital/playlist.m3u8" }] 
-            },
-            { 
-                id: "ary_news", 
-                name: "ARY News", 
-                country: "PK", 
-                categories: ["news"], 
-                logo: "https://upload.wikimedia.org/wikipedia/en/8/8b/ARY_News_Logo.png", 
-                streams: [{ url: "https://jk3lz9n2.rocketcdn.me/arynews/playlist.m3u8" }] 
-            },
-            { 
-                id: "geo_news", 
-                name: "Geo News", 
-                country: "PK", 
-                categories: ["news"], 
-                logo: "https://upload.wikimedia.org/wikipedia/en/2/2e/Geo_News_Logo.png", 
-                streams: [{ url: "https://jk3lz9n2.rocketcdn.me/geonews/playlist.m3u8" }] 
-            },
-            { 
-                id: "hum_tv", 
-                name: "Hum TV", 
-                country: "PK", 
-                categories: ["entertainment"], 
-                logo: "https://upload.wikimedia.org/wikipedia/en/3/3c/Hum_TV_Logo.png", 
-                streams: [{ url: "https://jk3lz9n2.rocketcdn.me/humtv/playlist.m3u8" }] 
-            },
-            { 
-                id: "dunya_news", 
-                name: "Dunya News", 
-                country: "PK", 
-                categories: ["news"], 
-                logo: "https://upload.wikimedia.org/wikipedia/en/3/3c/Dunya_News_Logo.png", 
-                streams: [{ url: "https://jk3lz9n2.rocketcdn.me/dunyanews/playlist.m3u8" }] 
-            },
-            { 
-                id: "samaa_tv", 
-                name: "Samaa TV", 
-                country: "PK", 
-                categories: ["news"], 
-                logo: "https://upload.wikimedia.org/wikipedia/en/1/1c/Samaa_TV_Logo.png", 
-                streams: [{ url: "https://jk3lz9n2.rocketcdn.me/samaatv/playlist.m3u8" }] 
-            },
-            { 
-                id: "express_news", 
-                name: "Express News", 
-                country: "PK", 
-                categories: ["news"], 
-                logo: "https://upload.wikimedia.org/wikipedia/en/8/8b/Express_News_Logo.png", 
-                streams: [{ url: "https://jk3lz9n2.rocketcdn.me/express/playlist.m3u8" }] 
-            },
-            { 
-                id: "aaj_news", 
-                name: "Aaj News", 
-                country: "PK", 
-                categories: ["news"], 
-                logo: "https://upload.wikimedia.org/wikipedia/en/4/4c/Aaj_News_Logo.png", 
-                streams: [{ url: "https://jk3lz9n2.rocketcdn.me/aajnews/playlist.m3u8" }] 
-            },
-            { 
-                id: "green_ent", 
-                name: "Green Entertainment", 
-                country: "PK", 
-                categories: ["entertainment"], 
-                logo: "https://upload.wikimedia.org/wikipedia/en/9/9b/Green_Entertainment_Logo.png", 
-                streams: [{ url: "http://cdn01.palki.tv/live/GreenTV-M/index.fmp4.m3u8" }] 
-            },
+        const response = await fetch(M3U_URL);
+        if (!response.ok) throw new Error("Network response was not ok");
+        
+        const m3uText = await response.text();
+        const channels = parseM3U(m3uText);
 
-            // --- DISNEY CHANNELS ---
-            { 
-                id: "disney_channel", 
-                name: "Disney Channel", 
-                country: "US", 
-                categories: ["kids"], 
-                logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Disney_Channel_logo_%282014%29.svg/512px-Disney_Channel_logo_%282014%29.svg.png", 
-                streams: [{ url: "https://streaming.disney.com/disney/index.m3u8" }] 
-            },
-            { 
-                id: "disney_jr", 
-                name: "Disney Junior", 
-                country: "US", 
-                categories: ["kids"], 
-                logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Disney_Junior_Logo.svg/512px-Disney_Junior_Logo.svg.png", 
-                streams: [{ url: "https://streaming.disney.com/disneyjr/index.m3u8" }] 
-            }
-        ];
+        if (channels.length === 0) {
+            throw new Error("No channels parsed from M3U");
+        }
 
-        state.channels = customChannels;
+        state.channels = channels;
+        
+        // Update Country dropdown dynamically based on available countries
+        updateCountryDropdown(channels);
 
         renderTrending();
         renderGrid();
 
     } catch (e) {
-        DOM.grid.innerHTML = `
-            <div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-muted);">
-                <h2 style="font-size:4rem; margin-bottom:10px; opacity:0.5;">📡</h2>
-                <h3 style="font-size:1.5rem; color:#fff;">Server Offline</h3>
-                <p style="margin-top:10px;">Could not connect to HF X TV Network.<br>Please check your internet connection.</p>
-            </div>`;
+        console.warn("M3U Load Failed, using fallback list.", e);
+        
+        // Fallback to the hardcoded Pakistani & Disney list
+        const fallbackChannels = [
+            { id: "ary_digital", name: "ARY Digital", country: "PK", categories: ["entertainment"], logo: "https://upload.wikimedia.org/wikipedia/en/5/5e/ARY_Digital_Logo.png", streams: [{ url: "https://jk3lz9n2.rocketcdn.me/arydigital/playlist.m3u8" }] },
+            { id: "geo_news", name: "Geo News", country: "PK", categories: ["news"], logo: "https://upload.wikimedia.org/wikipedia/en/2/2e/Geo_News_Logo.png", streams: [{ url: "https://jk3lz9n2.rocketcdn.me/geonews/playlist.m3u8" }] },
+            { id: "hum_tv", name: "Hum TV", country: "PK", categories: ["entertainment"], logo: "https://upload.wikimedia.org/wikipedia/en/3/3c/Hum_TV_Logo.png", streams: [{ url: "https://jk3lz9n2.rocketcdn.me/humtv/playlist.m3u8" }] },
+            { id: "dunya_news", name: "Dunya News", country: "PK", categories: ["news"], logo: "https://upload.wikimedia.org/wikipedia/en/3/3c/Dunya_News_Logo.png", streams: [{ url: "https://jk3lz9n2.rocketcdn.me/dunyanews/playlist.m3u8" }] },
+            { id: "disney_channel", name: "Disney Channel", country: "US", categories: ["kids"], logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Disney_Channel_logo_%282014%29.svg/512px-Disney_Channel_logo_%282014%29.svg.png", streams: [{ url: "https://streaming.disney.com/disney/index.m3u8" }] }
+        ];
+
+        state.channels = fallbackChannels;
+        renderTrending();
+        renderGrid();
     }
 }
 
+function updateCountryDropdown(channels) {
+    const countryCodes = [...new Set(channels.map(c => c.country).filter(Boolean))].sort();
+    const dCountry = document.getElementById("drawerCountry");
+    if (!dCountry) return;
+    
+    dCountry.innerHTML = '<option value="all">🌍 All Countries</option>';
+    
+    // Country flags map (basic)
+    const flags = { 'PK': '🇵🇰', 'IN': '🇮🇳', 'US': '🇺🇸', 'UK': '🇬🇧', 'SA': '🇸🇦', 'AE': '🇦🇪' };
+    
+    countryCodes.forEach(code => {
+        const opt = document.createElement("option");
+        opt.value = code;
+        opt.textContent = `${flags[code] || '🌐'} ${code}`;
+        dCountry.appendChild(opt);
+    });
+}
+
 /* =========================================================
-   6. RENDER FUNCTIONS
+   7. RENDER FUNCTIONS
    ========================================================= */
 function renderTrending() {
     DOM.trendingScroll.innerHTML = "";
-    let list = state.channels.slice(0, 5);
+    // Pick first 5 channels with logos
+    let list = state.channels.filter(c => c.logo).slice(0, 5);
     list.forEach(ch => {
         const card = document.createElement("div");
         card.className = "trending-card";
-        const logo = ch.logo ? `<img src="${ch.logo}" class="trending-thumb" onerror="this.style.display='none'">` : `<div class="trending-thumb" style="display:flex;align-items:center;justify-content:center;font-size:2rem;">📺</div>`;
+        const logo = `<img src="${ch.logo}" class="trending-thumb" onerror="this.style.display='none'">`;
         card.innerHTML = `${logo}<div class="trending-name">${ch.name}</div>`;
         card.onclick = () => playChannel(ch);
         DOM.trendingScroll.appendChild(card);
@@ -244,7 +257,8 @@ function renderGrid() {
         return;
     }
 
-    list.forEach(ch => {
+    // Limit render to 200 for performance
+    list.slice(0, 200).forEach(ch => {
         const card = document.createElement("div");
         card.className = "channel-card";
         
@@ -261,7 +275,7 @@ function renderGrid() {
 }
 
 /* =========================================================
-   7. PLAYER LOGIC & LOCKS
+   8. PLAYER LOGIC & LOCKS
    ========================================================= */
 function playChannel(ch) {
     if(state.player.hls) state.player.hls.destroy();
@@ -340,7 +354,7 @@ if(document.getElementById("btnReload")) {
 }
 
 /* =========================================================
-   8. LIVE CHAT
+   9. LIVE CHAT
    ========================================================= */
 if(DOM.btnChat) {
     DOM.btnChat.onclick = () => {
@@ -383,7 +397,7 @@ if(DOM.chatSend) {
 }
 
 /* =========================================================
-   9. AUTHENTICATION & VIBRATION
+   10. AUTHENTICATION & VIBRATION
    ========================================================= */
 let usersDB = JSON.parse(localStorage.getItem("hfxtv_users")) || [];
 let loggedInUser = localStorage.getItem("hfxtv_logged");
@@ -443,7 +457,6 @@ if(document.getElementById("btnLogin")) {
             document.getElementById("profileEmail").textContent = email;
             document.getElementById("profileAvatar").textContent = email.charAt(0).toUpperCase();
         } else {
-            // 🔴 VIBRATION ON WRONG PASSWORD 🔴
             if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
             alert("Invalid Email or Password.");
         }
@@ -461,6 +474,6 @@ if(document.getElementById("btnLogout")) {
 }
 
 /* =========================================================
-   10. INIT APP
+   11. INIT APP
    ========================================================= */
 loadChannels();
