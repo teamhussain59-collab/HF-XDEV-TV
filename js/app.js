@@ -98,21 +98,12 @@ if (document.getElementById("drawerSort")) {
 }
 
 /* =========================================================
-   5. PAKISTANI & DISNEY CHANNELS (FIXED HTTPS LINKS)
+   5. PAKISTANI, ARY & DISNEY CHANNELS (FIXED LIST)
    ========================================================= */
 async function loadChannels() {
     try {
-        // Yahan saare Pakistani aur Disney channels ki list hai (HTTPS links ke sath)
         const customChannels = [
-            // --- PAKISTANI CHANNELS ---
-            { 
-                id: "geo_news", 
-                name: "Geo News", 
-                country: "PK", 
-                categories: ["news"], 
-                logo: "https://upload.wikimedia.org/wikipedia/en/2/2e/Geo_News_Logo.png", 
-                streams: [{ url: "https://jk3lz9n2.rocketcdn.me/geonews/playlist.m3u8" }] 
-            },
+            // --- PAKISTANI CHANNELS (ARY Network) ---
             { 
                 id: "ary_digital", 
                 name: "ARY Digital", 
@@ -120,6 +111,22 @@ async function loadChannels() {
                 categories: ["entertainment"], 
                 logo: "https://upload.wikimedia.org/wikipedia/en/5/5e/ARY_Digital_Logo.png", 
                 streams: [{ url: "https://jk3lz9n2.rocketcdn.me/arydigital/playlist.m3u8" }] 
+            },
+            { 
+                id: "ary_news", 
+                name: "ARY News", 
+                country: "PK", 
+                categories: ["news"], 
+                logo: "https://upload.wikimedia.org/wikipedia/en/8/8b/ARY_News_Logo.png", 
+                streams: [{ url: "https://jk3lz9n2.rocketcdn.me/arynews/playlist.m3u8" }] 
+            },
+            { 
+                id: "geo_news", 
+                name: "Geo News", 
+                country: "PK", 
+                categories: ["news"], 
+                logo: "https://upload.wikimedia.org/wikipedia/en/2/2e/Geo_News_Logo.png", 
+                streams: [{ url: "https://jk3lz9n2.rocketcdn.me/geonews/playlist.m3u8" }] 
             },
             { 
                 id: "hum_tv", 
@@ -146,14 +153,6 @@ async function loadChannels() {
                 streams: [{ url: "https://jk3lz9n2.rocketcdn.me/samaatv/playlist.m3u8" }] 
             },
             { 
-                id: "ary_news", 
-                name: "ARY News", 
-                country: "PK", 
-                categories: ["news"], 
-                logo: "https://upload.wikimedia.org/wikipedia/en/8/8b/ARY_News_Logo.png", 
-                streams: [{ url: "https://jk3lz9n2.rocketcdn.me/arynews/playlist.m3u8" }] 
-            },
-            { 
                 id: "express_news", 
                 name: "Express News", 
                 country: "PK", 
@@ -169,6 +168,14 @@ async function loadChannels() {
                 logo: "https://upload.wikimedia.org/wikipedia/en/4/4c/Aaj_News_Logo.png", 
                 streams: [{ url: "https://jk3lz9n2.rocketcdn.me/aajnews/playlist.m3u8" }] 
             },
+            { 
+                id: "green_ent", 
+                name: "Green Entertainment", 
+                country: "PK", 
+                categories: ["entertainment"], 
+                logo: "https://upload.wikimedia.org/wikipedia/en/9/9b/Green_Entertainment_Logo.png", 
+                streams: [{ url: "http://cdn01.palki.tv/live/GreenTV-M/index.fmp4.m3u8" }] 
+            },
 
             // --- DISNEY CHANNELS ---
             { 
@@ -177,7 +184,7 @@ async function loadChannels() {
                 country: "US", 
                 categories: ["kids"], 
                 logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Disney_Channel_logo_%282014%29.svg/512px-Disney_Channel_logo_%282014%29.svg.png", 
-                streams: [{ url: "https://streaming.disney.com/disney/index.m3u8" }] // Updated to a secure link
+                streams: [{ url: "https://streaming.disney.com/disney/index.m3u8" }] 
             },
             { 
                 id: "disney_jr", 
@@ -241,7 +248,6 @@ function renderGrid() {
         const card = document.createElement("div");
         card.className = "channel-card";
         
-        // Lock Icon Logic
         let lockIcon = "";
         if (ch.status === "unlocked") lockIcon = `<div class="status-icon unlocked">🔓</div>`;
         else if (ch.status === "locked") lockIcon = `<div class="status-icon locked">🔒</div>`;
