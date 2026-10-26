@@ -18,18 +18,18 @@ if(themeToggleBtn) {
 }
 
 /* =========================================================
-   2. APP STATE
+   2. APP STATE (GLOBAL VARIABLES)
    ========================================================= */
 const state = {
-    allChannels: [],       // Saare 10,000+ channels yahan aayenge
-    filteredChannels: [],  // Jo filter hokar screen par aayenge
+    allChannels: [],       // Saare 10,000+ channels yahan save honge
+    filteredChannels: [],  // Jo channels filter ke baad screen par aayenge
     currentCategory: "All",
     currentCountry: "all",
     searchQuery: "",
     sortBy: "default",
     player: { id: "", name: "", logo: "", url: "", hls: null },
     chat: { interval: null, viewerCount: 0 },
-    itemsPerPage: 50,      // Ek waqt mein kitne channels dikhein
+    itemsPerPage: 100,     // Ek baar mein 100 channels dikhayenge taake fast chale
     currentPage: 1
 };
 
@@ -76,7 +76,7 @@ if (document.getElementById("closeDrawer")) {
     DOM.drawerOverlay.addEventListener("click", closeDrawer);
 }
 
-// Search Sync
+// Search Syncing (Drawer aur Main Header dono se search ho sake)
 const drawerSearch = document.getElementById("drawerSearch");
 const mainSearch = document.getElementById("mainSearch");
 
@@ -95,13 +95,24 @@ if (drawerSearch && mainSearch) {
 
 // Filter Syncing (Sort, Country, Category)
 if (document.getElementById("drawerSort")) {
-    document.getElementById("drawerSort").addEventListener("change", (e) => { state.sortBy = e.target.value; applyFilters(); });
-    document.getElementById("drawerCountry").addEventListener("change", (e) => { state.currentCountry = e.target.value; applyFilters(); closeDrawer(); });
-    document.getElementById("drawerCategory").addEventListener("change", (e) => { state.currentCategory = e.target.value; applyFilters(); closeDrawer(); });
+    document.getElementById("drawerSort").addEventListener("change", (e) => { 
+        state.sortBy = e.target.value; 
+        applyFilters(); 
+    });
+    document.getElementById("drawerCountry").addEventListener("change", (e) => { 
+        state.currentCountry = e.target.value; 
+        applyFilters(); 
+        closeDrawer(); 
+    });
+    document.getElementById("drawerCategory").addEventListener("change", (e) => { 
+        state.currentCategory = e.target.value; 
+        applyFilters(); 
+        closeDrawer(); 
+    });
 }
 
 /* =========================================================
-   5. M3U PARSER FUNCTION
+   5. M3U PARSER FUNCTION (Reads the big file)
    ========================================================= */
 function parseM3U(m3uContent) {
     const lines = m3uContent.split(/\r?\n/);
@@ -113,21 +124,21 @@ function parseM3U(m3uContent) {
         if (!line) continue;
 
         if (line.startsWith('#EXTINF:')) {
-            // Extract Name
+            // Extract Channel Name (Text after the last comma)
             const commaIndex = line.lastIndexOf(',');
             const name = commaIndex > -1 ? line.substring(commaIndex + 1).trim() : 'Unknown Channel';
             
-            // Extract Logo
+            // Extract Logo (tvg-logo="...")
             const logoMatch = line.match(/tvg-logo="([^"]*)"/);
             const logo = logoMatch ? logoMatch[1] : '';
             
-            // Extract Category
+            // Extract Category (group-title="...")
             const groupMatch = line.match(/group-title="([^"]*)"/);
-            let category = groupMatch && groupMatch[1] ? groupMatch[1].toLowerCase() : 'general';
+            let category = groupMatch && groupMatch[1] ? groupMatch[1].toLowerCase().trim() : 'general';
             
-            // Extract Country
+            // Extract Country (tvg-country="...")
             const countryMatch = line.match(/tvg-country="([^"]*)"/);
-            let country = countryMatch && countryMatch[1] ? countryMatch[1].toUpperCase() : '';
+            let country = countryMatch && countryMatch[1] ? countryMatch[1].toUpperCase().trim() : '';
 
             currentChannel = {
                 id: name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Math.random().toString(36).substring(2, 7),
@@ -150,17 +161,17 @@ function parseM3U(m3uContent) {
 }
 
 /* =========================================================
-   6. LOAD CHANNELS (AAPKA LINK YAHAN HAI)
+   6. LOAD CHANNELS (Fetching from your M3U link)
    ========================================================= */
 async function loadChannels() {
-    // Aapka diya hua link
     const M3U_URL = "https://iptv-org.github.io/iptv/index.m3u";
     
+    // Show loading screen
     DOM.grid.innerHTML = `
         <div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--primary);">
             <h2 style="font-size:2rem; margin-bottom:10px;">⏳</h2>
             <h3>Loading All Channels...</h3>
-            <p style="color:var(--text-muted); font-size:0.9rem;">Duniya bhar ke 10,000+ channels load ho rahe hain. Thoda intezar karein...</p>
+            <p style="color:var(--text-muted); font-size:0.9rem;">Please wait, downloading 10,000+ channels from server...</p>
         </div>`;
 
     try {
@@ -172,9 +183,13 @@ async function loadChannels() {
 
         if (parsedChannels.length === 0) throw new Error("No channels parsed");
 
+        // Save all channels to state
         state.allChannels = parsedChannels;
         
+        // Populate the dropdowns with all available countries and categories
         updateDropdowns(parsedChannels);
+        
+        // Show them on screen
         applyFilters();
         renderTrending();
 
@@ -184,24 +199,27 @@ async function loadChannels() {
             <div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-muted);">
                 <h2 style="font-size:4rem; margin-bottom:10px; opacity:0.5;">📡</h2>
                 <h3 style="font-size:1.5rem; color:#fff;">Failed to load channels</h3>
-                <p style="margin-top:10px;">Internet connection check karein aur page refresh karein.</p>
+                <p style="margin-top:10px;">Server is not responding or internet issue.</p>
+                <button onclick="loadChannels()" style="margin-top:20px; padding:10px 20px; background:var(--primary); border:none; border-radius:8px; font-weight:bold; cursor:pointer;">Try Again</button>
             </div>`;
     }
 }
 
 /* =========================================================
-   7. DROPDOWNS POPULATION
+   7. DYNAMIC DROPDOWNS (Country & Category)
    ========================================================= */
 function updateDropdowns(channels) {
     const dCountry = document.getElementById("drawerCountry");
     const dCategory = document.getElementById("drawerCategory");
     if (!dCountry || !dCategory) return;
 
+    // Extract unique countries and categories
     const countries = [...new Set(channels.map(c => c.country).filter(Boolean))].sort();
     const categories = [...new Set(channels.flatMap(c => c.categories).filter(Boolean))].sort();
 
+    // Add Countries
     dCountry.innerHTML = '<option value="all">🌍 All Countries</option>';
-    const flags = { 'PK': '🇵🇰', 'IN': '🇮🇳', 'US': '🇺🇸', 'UK': '🇬🇧', 'SA': '🇸🇦', 'AE': '🇦🇪' };
+    const flags = { 'PK': '🇵🇰', 'IN': '🇮🇳', 'US': '🇺🇸', 'UK': '🇬🇧', 'SA': '🇸🇦', 'AE': '🇦🇪', 'CA': '🇨🇦', 'AU': '🇦🇺' };
     countries.forEach(code => {
         const opt = document.createElement("option");
         opt.value = code;
@@ -209,30 +227,43 @@ function updateDropdowns(channels) {
         dCountry.appendChild(opt);
     });
 
+    // Add Categories
     dCategory.innerHTML = '<option value="All">All Categories</option>';
     categories.forEach(cat => {
+        // Capitalize first letter of category
+        const catName = cat.charAt(0).toUpperCase() + cat.slice(1);
         const opt = document.createElement("option");
         opt.value = cat;
-        opt.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+        opt.textContent = catName;
         dCategory.appendChild(opt);
     });
 }
 
 /* =========================================================
-   8. FILTERING & RENDERING (With Load More)
+   8. FILTERING & RENDERING (With Load More Logic)
    ========================================================= */
 function applyFilters() {
     let list = [...state.allChannels];
 
-    if (state.currentCategory !== "All") list = list.filter(c => c.categories.includes(state.currentCategory));
-    if (state.currentCountry !== "all") list = list.filter(c => c.country === state.currentCountry);
-    if (state.searchQuery) list = list.filter(c => c.name.toLowerCase().includes(state.searchQuery.toLowerCase()));
+    // 1. Filter by Category
+    if (state.currentCategory !== "All") {
+        list = list.filter(c => c.categories.includes(state.currentCategory));
+    }
+    // 2. Filter by Country
+    if (state.currentCountry !== "all") {
+        list = list.filter(c => c.country === state.currentCountry);
+    }
+    // 3. Filter by Search Query
+    if (state.searchQuery) {
+        list = list.filter(c => c.name.toLowerCase().includes(state.searchQuery.toLowerCase()));
+    }
 
+    // 4. Sorting
     if (state.sortBy === "asc") list.sort((a,b) => a.name.localeCompare(b.name));
     else if (state.sortBy === "desc") list.sort((a,b) => b.name.localeCompare(a.name));
 
     state.filteredChannels = list;
-    state.currentPage = 1; 
+    state.currentPage = 1; // Reset to page 1 whenever a filter is applied
     renderGrid();
 }
 
@@ -244,6 +275,7 @@ function renderGrid() {
         return;
     }
 
+    // Calculate which items to show (Pagination)
     const endIndex = state.currentPage * state.itemsPerPage;
     const itemsToRender = state.filteredChannels.slice(0, endIndex);
 
@@ -251,10 +283,12 @@ function renderGrid() {
         const card = document.createElement("div");
         card.className = "channel-card";
         
+        // Lock/Unlock Icon Logic
         let lockIcon = "";
         if (ch.status === "unlocked") lockIcon = `<div class="status-icon unlocked">🔓</div>`;
         else if (ch.status === "locked") lockIcon = `<div class="status-icon locked">🔒</div>`;
 
+        // Fallback for broken logos
         const logo = ch.logo ? `<img src="${ch.logo}" class="channel-logo" onload="this.style.display='block'" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : `<div class="channel-logo-fallback" style="display:flex; background:var(--primary);">${ch.name.charAt(0)}</div>`;
         
         card.innerHTML = `${lockIcon}${logo}<div class="channel-name">${ch.name}</div>`;
@@ -262,6 +296,7 @@ function renderGrid() {
         DOM.grid.appendChild(card);
     });
 
+    // Add "Load More" button if there are more channels left
     if (endIndex < state.filteredChannels.length) {
         const loadMoreBtn = document.createElement("button");
         loadMoreBtn.className = "tool-btn";
@@ -269,7 +304,8 @@ function renderGrid() {
         loadMoreBtn.style.margin = "20px auto";
         loadMoreBtn.style.padding = "12px 30px";
         loadMoreBtn.style.width = "fit-content";
-        loadMoreBtn.textContent = "Load More Channels...";
+        loadMoreBtn.style.fontSize = "1rem";
+        loadMoreBtn.textContent = `Load More Channels (${state.filteredChannels.length - endIndex} remaining)`;
         loadMoreBtn.onclick = () => {
             state.currentPage++;
             renderGrid();
@@ -280,6 +316,7 @@ function renderGrid() {
 
 function renderTrending() {
     DOM.trendingScroll.innerHTML = "";
+    // Pick 5 random channels that have a logo to show in trending
     let list = state.allChannels.filter(c => c.logo).sort(() => 0.5 - Math.random()).slice(0, 5);
     
     list.forEach(ch => {
@@ -297,7 +334,7 @@ function renderTrending() {
 function playChannel(ch) {
     if(state.player.hls) state.player.hls.destroy();
     
-    state.player = { id: ch.id, name: ch.name, logo: ch.logo, url: ch.streams[0].url, hls: null };
+    state.player = { id: ch.id, name: ch.name, logo: ch.logo, url: ch.streams[0].url, hls: null, channelRef: ch };
     
     DOM.placeholder.classList.add("hide");
     DOM.nowPlaying.innerHTML = `Playing: <b>${ch.name}</b>`;
@@ -311,7 +348,7 @@ function playChannel(ch) {
         state.player.hls.on(Hls.Events.MANIFEST_PARSED, () => {
             DOM.overlay.classList.remove("loading");
             DOM.player.play();
-            ch.status = "unlocked";
+            ch.status = "unlocked"; // Mark as working
         });
 
         state.player.hls.on(Hls.Events.ERROR, (event, data) => {
@@ -320,7 +357,7 @@ function playChannel(ch) {
                 DOM.placeholder.classList.remove("hide");
                 DOM.placeholderTitle.textContent = "Stream Offline";
                 DOM.placeholderSubtitle.textContent = "This channel is currently not available.";
-                ch.status = "locked";
+                ch.status = "locked"; // Mark as broken
             }
         });
     } else {
@@ -384,7 +421,7 @@ if(DOM.chatSend) DOM.chatSend.onclick = () => {
     DOM.chatMessages.appendChild(msg); DOM.chatInput.value = ""; DOM.chatMessages.scrollTop = DOM.chatMessages.scrollHeight;
 };
 
-// Auth
+// Auth & Vibration
 let usersDB = JSON.parse(localStorage.getItem("hfxtv_users")) || [];
 let loggedInUser = localStorage.getItem("hfxtv_logged");
 if(loggedInUser) {
