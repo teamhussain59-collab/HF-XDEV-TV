@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HF X TV — Ultimate Streaming</title>
+    
+    <!-- Favicon (Icons Folder) -->
+    <link rel="icon" type="image/jpeg" href="images/logo.jpg">
+    
+    <!-- HLS.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    
+    <!-- Custom CSS (CSS Folder) -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- SIDE DRAWER -->
+    <div class="drawer-overlay" id="drawerOverlay"></div>
+    <div class="side-drawer" id="sideDrawer">
+        <div class="drawer-header">
+            <h2>⚙️ Options</h2>
+            <button class="drawer-close" id="closeDrawer">×</button>
+        </div>
+        <div class="drawer-content">
+            <div class="drawer-section">
+                <label>🔍 Search</label>
+                <input type="text" id="drawerSearch" class="drawer-input" placeholder="Search channel...">
+            </div>
+            <div class="drawer-section">
+                <label>↕️ Sort (Sport)</label>
+                <select id="drawerSort" class="drawer-select">
+                    <option value="default">Default</option>
+                    <option value="asc">Name (A - Z)</option>
+                    <option value="desc">Name (Z - A)</option>
+                </select>
+            </div>
+            <div class="drawer-section">
+                <label>🌍 Country</label>
+                <select id="drawerCountry" class="drawer-select">
+                    <option value="all">🌍 All Countries</option>
+                </select>
+            </div>
+            <div class="drawer-section">
+                <label>📂 Category</label>
+                <select id="drawerCategory" class="drawer-select">
+                    <option value="All">All Channels</option>
+                    <option value="news">News</option>
+                    <option value="sports">Sports</option>
+                    <option value="movies">Movies</option>
+                </select>
+            </div>
+            <!-- WhatsApp Auto Redirect -->
+            <a href="whatsapp://channel/0029Vb9FRVV8F2pDezlyrD0q" target="_blank" class="whatsapp-btn">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                Join WhatsApp
+            </a>
+        </div>
+    </div>
+
+    <!-- LOGIN / SIGNUP OVERLAY -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-box">
+            <img src="images/logo.jpg" alt="Logo">
+            
+            <div id="signupForm" style="display: none;">
+                <h2>Create Account</h2>
+                <input type="text" id="signupName" class="auth-input" placeholder="Full Name">
+                <input type="email" id="signupEmail" class="auth-input" placeholder="Email Address">
+                <input type="password" id="signupPass" class="auth-input" placeholder="Password">
+                <button class="auth-btn" id="btnSignup">Sign Up</button>
+                <div class="auth-toggle">Already have an account? <a id="goToLogin">Log In</a></div>
+            </div>
+
+            <div id="loginForm">
+                <h2>Welcome Back</h2>
+                <input type="email" id="loginEmail" class="auth-input" placeholder="Email Address">
+                <input type="password" id="loginPass" class="auth-input" placeholder="Password">
+                <button class="auth-btn" id="btnLogin">Login</button>
+                <div class="auth-toggle">Don't have an account? <a id="goToSignup">Sign Up</a></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <header>
+        <div class="header-left">
+            <button class="menu-btn" id="openDrawer">⋮</button>
+            <div class="logo-container">
+                <!-- Image Link from Images Folder -->
+                <img src="images/logo.jpg" class="logo-img-custom">
+                <div class="logo-text">
+                    <h1>HF X TV</h1>
+                    <span>Global Streaming</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="mainSearch" placeholder="Search channels...">
+        </div>
+
+        <div class="header-right">
+            <button class="theme-btn" id="themeToggle">🌙</button>
+            <div class="profile-menu" id="profileMenu" style="display:none;">
+                <div class="profile-avatar" id="profileAvatar">U</div>
+                <div class="profile-email" id="profileEmail">user@mail.com</div>
+                <div class="profile-dropdown" id="profileDropdown">
+                    <button id="btnLogout">Logout</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <div class="app-layout">
+        <div class="player-wrapper">
+            <video id="videoPlayer" controls playsinline crossorigin="anonymous"></video>
+            
+            <div class="player-placeholder" id="playerPlaceholder">
+                <img src="images/logo.jpg" class="placeholder-logo" id="placeholderLogo">
+                <div class="placeholder-title" id="placeholderTitle">HF X TV</div>
+                <div class="placeholder-subtitle" id="placeholderSubtitle">Select a channel to start streaming</div>
+            </div>
+
+            <div class="player-overlay" id="playerOverlay">
+                <div class="spinner"></div>
+            </div>
+        </div>
+
+        <div class="player-toolbar">
+            <button class="tool-btn" id="btnStop">⏹ Stop</button>
+            <button class="tool-btn" id="btnMute">🔇 Mute</button>
+            <button class="tool-btn" id="btnReload">🔄 Reload</button>
+            <button class="tool-btn" id="btnChat">💬 Chat</button>
+            <div class="now-playing" id="nowPlaying">No channel selected</div>
+        </div>
+
+        <div>
+            <div class="section-title"><span>🔥 Trending Now</span></div>
+            <div class="trending-scroll" id="trendingScroll"></div>
+        </div>
+
+        <div>
+            <div class="section-title"><span>📡 All Channels</span></div>
+            <div class="channel-grid" id="channelGrid"></div>
+        </div>
+    </div>
+
+    <!-- LIVE CHAT DRAWER -->
+    <div class="chat-drawer" id="chatDrawer">
+        <div class="chat-header">
+            <h3>
+                <span style="width:8px; height:8px; background:var(--danger); border-radius:50%; display:inline-block;"></span> 
+                Live Chat <span id="chatViewers" style="font-size:0.75rem; color:var(--text-muted);">(0 viewers)</span>
+            </h3>
+            <button class="chat-close" id="closeChat">×</button>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-area">
+            <input type="text" id="chatInput" placeholder="Type a message...">
+            <button class="chat-send-btn" id="chatSend">➤</button>
+        </div>
+    </div>
+
+    <!-- Link to JS File (JS Folder) -->
+    <script src="js/app.js"></script>
+</body>
+</html>
